@@ -8,6 +8,11 @@
 
 > ⚠️ The application is **not standalone** and does not function without the accompanying scripts and processing system on a computer or microcontroller.
 
+The main purpose of this application is to perform **object detection** and return the coordinates of detected objects on the phone screen.  
+As an additional feature, it can also provide **azimuth information for drones**, enabling navigation and orientation without additional hardware.  
+
+This design allows the system to use an **Android device as a low-cost substitute for GPU-enabled platforms** (like NVIDIA Jetson) for object detection. The actual robot/drone control logic runs on a microcontroller or CPU-based system, which does **not require GPU capabilities**, making the setup cost-effective and accessible.
+
 ---
 
 ## ⚙️ How the System Works
@@ -25,13 +30,16 @@ The user grants the application permission to access these files on the phone.
 
 Upon receiving a "detect" command from the computer or Arduino, the application:
 
-- Processes the data  
+- Processes the data locally on the Android device using the CPU  
 - Returns the recognized object name  
 - Returns the object coordinates on the phone screen  
+- Optionally, provides azimuth data for drones
 
 The result is sent back via:
 
 - USB or Bluetooth to the computer / Arduino
+
+> ⚡ **Key design note:** The Android device is used **exclusively for object detection and coordinate calculation**, avoiding the need for expensive GPU platforms. The controlling processor handles all navigation, motor control, or other robot/drone functions.
 
 ---
 
@@ -87,7 +95,9 @@ The latest APK version can be downloaded here:
 ## 📜 Limitations
 - The application is meaningless without external communication  
 - Cannot operate without the model and class files  
-- Not intended for end users without technical setup
+- Not intended for end users without technical setup  
+- Azimuth functionality is only relevant when used with drones  
+- CPU-only detection may be slower than GPU-based platforms, but is sufficient for real-time operation in most robotics applications
 
 ---
 
