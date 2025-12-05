@@ -1,72 +1,116 @@
 // --- PODEŠAVANJA ---
-const int LED_PIN = 13;       // Ugrađena LED lampica
-const long BAUD_RATE = 115200; // OBAVEZNO: Mora biti isto kao u Android aplikaciji!
+const int LED_PIN = 13;
+const long BAUD_RATE = 115200; // Mora biti isto kao na telefonu!
 
-// Promenljive za prijem poruka
-String inputString = "";      // Buffer za poruku
-bool stringComplete = false;  // Da li je stigao kraj reda (\n)
+String inputString = "";
+bool stringComplete = false;
+
+// Promenljive u koje ćemo sačuvati podatke
+String detectedClass = "";
+float detectedX = 0.0;
+float detectedY = 0.0;
+float detectedAzimuth = 0.0;
 
 void setup() {
-  // Pokrećemo serijsku komunikaciju preko USB-a
   Serial.begin(BAUD_RATE);
-  
-  // Podešavamo LED pin
   pinMode(LED_PIN, OUTPUT);
-  digitalWrite(LED_PIN, LOW); // Početno stanje: ugašeno
-
-  // Opciono: Pošalji poruku da je spreman (vidi se u Serial Monitoru)
-  // Serial.println("Arduino USB Ready");
+  digitalWrite(LED_PIN, LOW);
 }
 
 void loop() {
-  // 1. ČITANJE PODATAKA SA USB-a
-  // Proveravamo da li ima novih bajtova u bufferu
+  // 1. ČITANJE SA USB-a
   while (Serial.available()) {
-    // Čitaj jedan po jedan karakter
     char inChar = (char)Serial.read();
-    
-    // Android šalje '\n' na kraju svake poruke
     if (inChar == '\n') {
       stringComplete = true;
     } else {
-      // Dodaj karakter u string
       inputString += inChar;
     }
   }
 
-  // 2. OBRADA PORUKE
+  // 2. OBRADA
   if (stringComplete) {
-    processMessage(inputString);
-
-    // Očisti buffer za sledeću poruku
+    parseData(inputString);
+    
+    // Očisti za sledeći put
     inputString = "";
     stringComplete = false;
   }
 }
 
-// Funkcija koja odlučuje šta da radi na osnovu teksta
-void processMessage(String msg) {
-  // Ukloni prazna mesta (whitespace) sa početka i kraja
-  msg.trim();
-
-  // Ako je poruka prazna, ignoriši
+void parseData(String msg) {
+  msg.trim(); // Skloni razmake
   if (msg.length() == 0) return;
 
-  // --- LOGIKA SLIČNA PYTHON KODU ---
-
-  // Slučaj 1: Ništa nije detektovano
+  // Format poruke sa telefona: "klasa,x,y,azimut;" 
+  // Primer: "bottle,0.55,0.42,125;"
+  
+  // Provera da li je NODETECT
   if (msg.indexOf("NODETECT") >= 0) {
     digitalWrite(LED_PIN, LOW);
-  } 
-  // Slučaj 2: Detektovana je flaša (prilagodi "bottle" ili "flasa" prema svom modelu)
-  else if (msg.indexOf("bottle") >= 0 || msg.indexOf("flasa") >= 0) {
-    digitalWrite(LED_PIN, HIGH);
+    // Serial.println("Nista ne vidim.");
+    return;
   }
-  // Slučaj 3: Detektovana osoba (primer)
-  else if (msg.indexOf("person") >= 0) {
-    // Možeš dodati drugu logiku, npr blinkanje
-    digitalWrite(LED_PIN, HIGH);
-  }
+
+  // --- PARSIRANJE (Razdvajanje po zarezima) ---
   
-  // Ovde možeš dodati kod za Servo motor, Relej, itd.
+  // 1. Nađi pozicije zareza
+  int firstComma = msg.indexOf(',');
+  int secondComma = msg.indexOf(',', firstComma + 1);
+  int thirdComma = msg.indexOf(',', secondComma + 1);
+  int endSemi = msg.indexOf(';', thirdComma + 1); // Kraj podataka za taj objekat
+
+  // Ako format nije dobar (fale zarezi), prekini
+  if (firstComma == -1 || secondComma == -1 || thirdComma == -1) return;
+
+  // 2. Izdvajanje podataka u Stringove
+  String classStr = msg.substring(0, firstComma);
+  String xStr = msg.substring(firstComma + 1, secondComma);
+  String yStr = msg.substring(secondComma + 1, thirdComma);
+  
+  // Za Azimut uzimamo od treceg zareza do tacka-zareza (;) ili kraja stringa
+  String azStr;
+  if (endSemi != -1) {
+    azStr = msg.substring(thirdComma + 1, endSemi);
+  } else {
+    azStr = msg.substring(thirdComma + 1);
+  }
+
+  // 3. Konverzija u brojeve
+  detectedClass = classStr;
+  detectedX = xStr.toFloat();
+  detectedY = yStr.toFloat();
+  detectedAzimuth = azStr.toFloat();
+
+  // --- TVOJA LOGIKA ---
+  // Sada imaš podatke u promenljivima! Evo primera šta možeš s njima:
+
+  // PRIMER 1: Pali LED samo ako je 'bottle' I ako je Azimut veći od 100
+  if (detectedClass == "bottle" || detectedClass == "flasa") {
+    
+    if (detectedAzimuth > 100 && detectedAzimuth < 200) {
+       digitalWrite(LED_PIN, HIGH); // Pali
+    } else {
+       digitalWrite(LED_PIN, LOW);  // Gasi ako ugao nije dobar
+    }
+  }
+
+  // PRIMER 2: Servo logika (ako imaš servo)
+  // Ako je X < 0.4 (objekat levo) -> okreni servo levo
+  // Ako je X > 0.6 (objekat desno) -> okreni servo desno
+  /*
+  if (detectedX < 0.4) {
+    // servo.write(0);
+  } else if (detectedX > 0.6) {
+    // servo.write(180);
+  }
+  */
+
+  // Debug ispis (da vidiš u Serial Monitoru šta se dešava)
+  /*
+  Serial.print("Objekat: "); Serial.print(detectedClass);
+  Serial.print(" | X: "); Serial.print(detectedX);
+  Serial.print(" | Y: "); Serial.print(detectedY);
+  Serial.print(" | Azimuth: "); Serial.println(detectedAzimuth);
+  */
 }
