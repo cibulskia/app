@@ -43,6 +43,14 @@ The result is sent back via:
 
 ---
 
+## 🏆 Key Advantage: High-Resolution Detection
+Unlike typical mobile detection systems that rely on HD video, **Detect** works with **high-resolution photographs (e.g., 6000x8000 px)**.  
+- Models like **YOLO8n** or **YOLO8s** are sufficient for stable detection even at these high resolutions.  
+- This approach allows **detecting objects from much greater distances** compared to using HD video with lighter models.  
+- By processing a single high-res image per command instead of streaming video, the system remains **efficient on CPU** while maintaining **accuracy and reliability**, making it ideal for robotics and drone applications.  
+
+---
+
 ## 📂 Permissions and Privacy
 The application is designed to be completely offline.
 
